@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
 import "./GovernorBravoInterfaces.sol";
@@ -9,13 +9,13 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     string public constant name = "Uniswap Governor Bravo";
 
     /// @notice The minimum setable proposal threshold
-    uint public constant MIN_PROPOSAL_THRESHOLD = 1000000e18; // 1,000,000 Uni
+    uint public constant MIN_PROPOSAL_THRESHOLD = 1e18; // 1 Uni
 
     /// @notice The maximum setable proposal threshold
     uint public constant MAX_PROPOSAL_THRESHOLD = 10000000e18; //10,000,000 Uni
 
     /// @notice The minimum setable voting period
-    uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
+    uint public constant MIN_VOTING_PERIOD = 1; // blocks
 
     /// @notice The max setable voting period
     uint public constant MAX_VOTING_PERIOD = 80640; // About 2 weeks
@@ -27,7 +27,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
     uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    uint public constant quorumVotes = 40000000e18; // 40,000,000 = 4% of Uni
+    uint public constant quorumVotes = 1e18; // 1 Uni
 
     /// @notice The maximum number of actions that can be included in a proposal
     uint public constant proposalMaxOperations = 10; // 10 actions
@@ -90,28 +90,45 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         uint endBlock = add256(startBlock, votingPeriod);
 
         proposalCount++;
-        Proposal memory newProposal = Proposal({
-            id: proposalCount,
-            proposer: msg.sender,
-            eta: 0,
-            targets: targets,
-            values: values,
-            signatures: signatures,
-            calldatas: calldatas,
-            startBlock: startBlock,
-            endBlock: endBlock,
-            forVotes: 0,
-            againstVotes: 0,
-            abstainVotes: 0,
-            canceled: false,
-            executed: false
-        });
 
-        proposals[newProposal.id] = newProposal;
-        latestProposalIds[newProposal.proposer] = newProposal.id;
+        Proposal storage p = proposals[proposalCount];
+        p.id = proposalCount;
+        p.proposer = msg.sender;
+        p.eta = 0;
+        p.targets = targets;
+        p.values = values;
+        p.signatures = signatures;
+        p.calldatas = calldatas;
+        p.startBlock = startBlock;
+        p.endBlock = endBlock;
+        p.forVotes = 0;
+        p.againstVotes = 0;
+        p.abstainVotes = 0;
+        p.canceled = false;
+        p.executed = false;
 
-        emit ProposalCreated(newProposal.id, msg.sender, targets, values, signatures, calldatas, startBlock, endBlock, description);
-        return newProposal.id;
+        // p = Proposal({
+        //     id: proposalCount,
+        //     proposer: msg.sender,
+        //     eta: 0,
+        //     targets: targets,
+        //     values: values,
+        //     signatures: signatures,
+        //     calldatas: calldatas,
+        //     startBlock: startBlock,
+        //     endBlock: endBlock,
+        //     forVotes: 0,
+        //     againstVotes: 0,
+        //     abstainVotes: 0,
+        //     canceled: false,
+        //     executed: false
+        // });
+
+        // proposals[p.id] = p;
+        latestProposalIds[p.proposer] = p.id;
+
+        emit ProposalCreated(p.id, msg.sender, targets, values, signatures, calldatas, startBlock, endBlock, description);
+        return p.id;
     }
 
     /**
@@ -143,7 +160,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.executeTransaction.value(proposal.values[i])(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+            timelock.executeTransaction{value: proposal.values[i]}(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
     }
@@ -166,11 +183,6 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         emit ProposalCanceled(proposalId);
     }
 
-    /**
-      * @notice Gets actions of a proposal
-      * @param proposalId the id of the proposal
-      * @return Targets, values, signatures, and calldatas of the proposal actions
-      */
     function getActions(uint proposalId) external view returns (address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas) {
         Proposal storage p = proposals[proposalId];
         return (p.targets, p.values, p.signatures, p.calldatas);
@@ -379,7 +391,7 @@ contract GovernorBravoDelegate is GovernorBravoDelegateStorageV1, GovernorBravoE
         return a - b;
     }
 
-    function getChainIdInternal() internal pure returns (uint) {
+    function getChainIdInternal() internal view returns (uint) {
         uint chainId;
         assembly { chainId := chainid() }
         return chainId;

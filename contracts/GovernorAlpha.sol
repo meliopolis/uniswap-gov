@@ -2,7 +2,7 @@
  *Submitted for verification at Etherscan.io on 2021-05-31
 */
 
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
 // Even fish can make waves.

@@ -6,7 +6,7 @@
  *Submitted for verification at Etherscan.io on 2020-09-15
 */
 
-pragma solidity ^0.5.16;
+pragma solidity ^0.8.13;
 pragma experimental ABIEncoderV2;
 
 // From https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/Math.sol
@@ -214,7 +214,7 @@ contract Uni {
     uint public mintingAllowedAfter;
 
     /// @notice Minimum time between mints
-    uint32 public constant minimumTimeBetweenMints = 1 days * 365;
+    uint32 public constant minimumTimeBetweenMints = 0;
 
     /// @notice Cap on the percentage of totalSupply that can be minted at each mint
     uint8 public constant mintCap = 2;
@@ -273,8 +273,8 @@ contract Uni {
      * @param minter_ The account with minting ability
      * @param mintingAllowedAfter_ The timestamp after which minting may occur
      */
-    constructor(address account, address minter_, uint mintingAllowedAfter_) public {
-        require(mintingAllowedAfter_ >= block.timestamp, "Uni::constructor: minting can only begin after deployment");
+    constructor(address account, address minter_, uint mintingAllowedAfter_) {
+        // require(mintingAllowedAfter_ >= block.timestamp, "Uni::constructor: minting can only begin after deployment");
 
         balances[account] = uint96(totalSupply);
         emit Transfer(address(0), account, totalSupply);
@@ -339,8 +339,8 @@ contract Uni {
      */
     function approve(address spender, uint rawAmount) external returns (bool) {
         uint96 amount;
-        if (rawAmount == uint(-1)) {
-            amount = uint96(-1);
+        if (rawAmount == type(uint).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(rawAmount, "Uni::approve: amount exceeds 96 bits");
         }
@@ -363,8 +363,8 @@ contract Uni {
      */
     function permit(address owner, address spender, uint rawAmount, uint deadline, uint8 v, bytes32 r, bytes32 s) external {
         uint96 amount;
-        if (rawAmount == uint(-1)) {
-            amount = uint96(-1);
+        if (rawAmount == type(uint).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(rawAmount, "Uni::permit: amount exceeds 96 bits");
         }
@@ -375,7 +375,7 @@ contract Uni {
         address signatory = ecrecover(digest, v, r, s);
         require(signatory != address(0), "Uni::permit: invalid signature");
         require(signatory == owner, "Uni::permit: unauthorized");
-        require(now <= deadline, "Uni::permit: signature expired");
+        require(block.timestamp <= deadline, "Uni::permit: signature expired");
 
         allowances[owner][spender] = amount;
 
@@ -415,7 +415,7 @@ contract Uni {
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(rawAmount, "Uni::approve: amount exceeds 96 bits");
 
-        if (spender != src && spenderAllowance != uint96(-1)) {
+        if (spender != src && spenderAllowance != type(uint96).max) {
             uint96 newAllowance = sub96(spenderAllowance, amount, "Uni::transferFrom: transfer amount exceeds spender allowance");
             allowances[src][spender] = newAllowance;
 
@@ -450,7 +450,7 @@ contract Uni {
         address signatory = ecrecover(digest, v, r, s);
         require(signatory != address(0), "Uni::delegateBySig: invalid signature");
         require(nonce == nonces[signatory]++, "Uni::delegateBySig: invalid nonce");
-        require(now <= expiry, "Uni::delegateBySig: signature expired");
+        require(block.timestamp <= expiry, "Uni::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -578,7 +578,7 @@ contract Uni {
         return a - b;
     }
 
-    function getChainId() internal pure returns (uint) {
+    function getChainId() internal view returns (uint) {
         uint256 chainId;
         assembly { chainId := chainid() }
         return chainId;

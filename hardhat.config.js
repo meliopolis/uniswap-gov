@@ -36,14 +36,14 @@ require("@nomiclabs/hardhat-etherscan");
       accounts: [process.env.pk],
       gasPrice: 20000000000
     },
-    mainnet: {
-      url: process.env.infuraMain,
-      accounts: [process.env.pkMainnet],
-      gasPrice: 19500000000
+    sepolia: {
+      url: process.env.SEPOLIA_RPC_URL,
+      accounts: [process.env.pk],
+      gasPrice: 20000000000
     }
   },
   etherscan: {
-    apiKey: process.env.etherscan
+    apiKey: process.env.ETHERSCAN_API_KEY
   }
   
 };
